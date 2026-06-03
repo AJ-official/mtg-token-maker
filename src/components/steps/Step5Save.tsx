@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import React, { useState } from "react";
+import { flushSync } from "react-dom";
 import { toPng } from "html-to-image";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -89,8 +90,11 @@ export default function Step5Save({ previewRef }: Props) {
 
   const handleSave = async () => {
     if (!previewRef.current) return;
-    setSaving(true);
-    setMessage(null);
+    // flushSyncでReactの再レンダリングをキャプチャ前に完了させる（モバイル対策）
+    flushSync(() => {
+      setSaving(true);
+      setMessage(null);
+    });
     try {
       const dataUrl = await captureCard(previewRef.current);
       download(dataUrl, `token_${formatTimestamp()}.png`);
@@ -105,8 +109,10 @@ export default function Step5Save({ previewRef }: Props) {
 
   const handleSaveDouble = async () => {
     if (!previewRef.current) return;
-    setSavingDouble(true);
-    setMessage(null);
+    flushSync(() => {
+      setSavingDouble(true);
+      setMessage(null);
+    });
     try {
       const dataUrl = await captureCard(previewRef.current);
       const img = await loadImage(dataUrl);

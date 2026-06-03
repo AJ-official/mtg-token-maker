@@ -1,71 +1,182 @@
 "use client";
 
 import React, { useState } from "react";
-import { toPng } from "html-to-image";
 import { formatTimestamp } from "@/lib/utils";
+import { CardState, ManaType, MANA_SLOTS } from "@/types/card";
+import { getFrameById } from "@/config/frames";
+import { getIllustrationById } from "@/config/illustrations";
+import { getManaById } from "@/config/mana";
 
 type Props = {
-  previewRef: React.RefObject<HTMLDivElement | null>;
+  card: CardState;
 };
 
-const OUTPUT_WIDTH = 1260;
-const OUTPUT_HEIGHT = 1760;
+const W = 1260;
+const H = 1760;
 
 const DOUBLE_MARGIN_LR = 50;
 const DOUBLE_MARGIN_TOP = 65;
 const DOUBLE_MARGIN_BOTTOM = 35;
-const DOUBLE_CANVAS_W = OUTPUT_WIDTH * 2 + DOUBLE_MARGIN_LR * 2;              // 2620
-const DOUBLE_CANVAS_H = OUTPUT_HEIGHT + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM; // 1860
+const DOUBLE_CANVAS_W = W * 2 + DOUBLE_MARGIN_LR * 2;
+const DOUBLE_CANVAS_H = H + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM;
 
-async function fetchDataUrl(src: string): Promise<string> {
+// fetch → blob URL でCanvas汚染を防いで画像を読み込む
+async function loadImg(src: string): Promise<HTMLImageElement> {
   const res = await fetch(src);
   const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(`Failed: ${src}`)); };
+    img.src = url;
   });
 }
 
-async function captureCard(el: HTMLDivElement): Promise<string> {
-  const ratio = OUTPUT_WIDTH / el.offsetWidth;
+function pctW(v: string): number { return parseFloat(v) / 100 * W; }
+function pctH(v: string): number { return parseFloat(v) / 100 * H; }
+function cqw(v: string): number  { return parseFloat(v) / 100 * W; }
 
-  // クローン自体のスタイルは変えず、ラッパーだけオフスクリーンに置く
-  // （cloneにposition:fixedを設定するとhtml-to-imageの描画が崩れる）
-  const wrapper = document.createElement("div");
-  wrapper.style.cssText = `position:fixed;top:-99999px;left:-99999px;width:${el.offsetWidth}px;pointer-events:none;`;
-  const clone = el.cloneNode(true) as HTMLDivElement;
-  wrapper.appendChild(clone);
-  document.body.appendChild(wrapper);
+function getWrappedLines(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
+  const lines: string[] = [];
+  for (const para of text.split("\n")) {
+    if (!para) { lines.push(""); continue; }
+    let line = "";
+    for (const char of para) {
+      const test = line + char;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = char; }
+      else line = test;
+    }
+    lines.push(line);
+  }
+  return lines;
+}
 
-  try {
-    // クローン内の全<img>をdata URLに置換（html-to-imageの外部フェッチを不要にする）
-    const imgs = Array.from(clone.querySelectorAll("img"));
-    await Promise.all(
-      imgs.map(async (img) => {
-        try { img.src = await fetchDataUrl(img.src); } catch (_) {}
-      })
-    );
+async function renderCardToCanvas(card: CardState): Promise<string> {
+  const frame = getFrameById(card.frameId);
+  const illustration = getIllustrationById(card.illustrationId);
+  const isDungeon = card.cardType === "dungeon";
+  const isCreature = card.cardType === "creature";
+  const isPlaneswalker = card.cardType === "planeswalker";
 
-    const dataUrl = await toPng(clone, { pixelRatio: ratio });
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
 
-    const captured = await loadImage(dataUrl);
-    if (captured.naturalWidth === OUTPUT_WIDTH && captured.naturalHeight === OUTPUT_HEIGHT) {
-      return dataUrl;
+  // ダンジョン：イラストのみ全面表示
+  if (isDungeon) {
+    if (illustration) {
+      const img = await loadImg(illustration.file);
+      ctx.drawImage(img, 0, 0, W, H);
+    }
+    return canvas.toDataURL("image/png");
+  }
+
+  // イラスト
+  if (frame && illustration) {
+    const ia = frame.illustrationArea;
+    const img = await loadImg(illustration.file);
+    ctx.drawImage(img, pctW(ia.left), pctH(ia.top), pctW(ia.width), pctH(ia.height));
+  }
+
+  // フレーム
+  if (frame) {
+    const img = await loadImg(frame.file);
+    ctx.drawImage(img, 0, 0, W, H);
+  }
+
+  // マナシンボル
+  if (frame && card.showMana) {
+    const activeManas = Array.from({ length: MANA_SLOTS })
+      .map((_, i) => card.manaTypes[i] ?? "none")
+      .filter((s): s is ManaType => s !== "none")
+      .map((s) => getManaById(s))
+      .filter(Boolean);
+
+    const manaSize = pctW(frame.manaArea.size);
+    const manaTop  = pctH(frame.manaArea.top);
+
+    await Promise.all(activeManas.map(async (m, i) => {
+      try {
+        const reverseIndex = activeManas.length - 1 - i;
+        const img = await loadImg(m!.file);
+        const x = W - (reverseIndex + 1) * 0.06 * W - manaSize;
+        ctx.drawImage(img, x, manaTop, manaSize, manaSize);
+      } catch (_) {}
+    }));
+  }
+
+  // AJシンボル
+  if (frame && card.showSymbol) {
+    try {
+      const img = await loadImg("/symbol/symbol.png");
+      const symW = pctW("9");
+      const symH = pctH("9");
+      ctx.drawImage(img, W - pctW("6.7") - symW, pctH("65.7"), symW, symH);
+    } catch (_) {}
+  }
+
+  // テキスト
+  if (frame) {
+    await document.fonts.ready;
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#000000";
+
+    // カード名
+    ctx.font = `bold ${cqw("4.5")}px "Noto Sans JP", sans-serif`;
+    ctx.fillText(card.title || "カード名", pctW("8"), pctH("5.7"), pctW("75"));
+
+    // カードタイプ
+    ctx.font = `${cqw("3.8")}px "Noto Sans JP", sans-serif`;
+    ctx.fillText(card.subtype || "カードタイプ", pctW("8"), pctH("68"), pctW("82"));
+
+    // カードテキスト（自動折り返し・縮小）
+    if (card.cardText) {
+      const tbLeft = pctW("10");
+      const tbTop  = pctH("75.5");
+      const tbW    = pctW("80");
+      const tbH    = pctH("18");
+      let fs = cqw("3.2");
+      let lines: string[] = [];
+      while (fs >= 12) {
+        ctx.font = `${fs}px "Noto Sans JP", sans-serif`;
+        lines = getWrappedLines(ctx, card.cardText, tbW);
+        if (lines.length * fs * 1.4 <= tbH) break;
+        fs = Math.floor(fs * 0.9);
+      }
+      ctx.font = `${fs}px "Noto Sans JP", sans-serif`;
+      lines.forEach((line, i) => ctx.fillText(line, tbLeft, tbTop + i * fs * 1.4));
     }
 
-    // 上部余白をトリミングして正確なサイズに揃える
-    const canvas = document.createElement("canvas");
-    canvas.width = OUTPUT_WIDTH;
-    canvas.height = OUTPUT_HEIGHT;
-    const ctx = canvas.getContext("2d")!;
-    const srcY = captured.naturalHeight - OUTPUT_HEIGHT;
-    ctx.drawImage(captured, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-    return canvas.toDataURL("image/png");
-  } finally {
-    document.body.removeChild(wrapper);
+    // P/T（クリーチャーのみ）
+    if (isCreature && frame.ptArea) {
+      const ptFs = cqw("5.2");
+      ctx.font = `bold ${ptFs}px "Noto Sans JP", sans-serif`;
+      const ptTop   = pctH("90");
+      const ptBoxL  = 0.77 * W;
+      const ptBoxW  = W - ptBoxL - 0.047 * W;
+      const p = card.power || "0";
+      const t = card.toughness || "0";
+      const pW = ctx.measureText(p).width;
+      const sW = ctx.measureText("/").width;
+      const tW = ctx.measureText(t).width;
+      const startX = ptBoxL + (ptBoxW - pW - sW - tW) / 2;
+      ctx.fillText(p, startX, ptTop);
+      ctx.fillText("/", startX + pW, ptTop);
+      ctx.fillText(t, startX + pW + sW, ptTop);
+    }
+
+    // 忠誠度（プレインズウォーカーのみ）
+    if (isPlaneswalker && frame.loyaltyArea) {
+      const loyFs = cqw("5.5");
+      ctx.font = `bold ${loyFs}px "Noto Sans JP", sans-serif`;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(card.loyalty || "0", pctW("84.5"), pctH("89"));
+    }
   }
+
+  return canvas.toDataURL("image/png");
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -86,17 +197,16 @@ function download(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
-export default function Step5Save({ previewRef }: Props) {
+export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const handleSave = async () => {
-    if (!previewRef.current) return;
     setSaving(true);
     setMessage(null);
     try {
-      const dataUrl = await captureCard(previewRef.current);
+      const dataUrl = await renderCardToCanvas(card);
       download(dataUrl, `token_${formatTimestamp()}.png`);
       setMessage("保存しました！");
     } catch (err) {
@@ -108,11 +218,10 @@ export default function Step5Save({ previewRef }: Props) {
   };
 
   const handleSaveDouble = async () => {
-    if (!previewRef.current) return;
     setSavingDouble(true);
     setMessage(null);
     try {
-      const dataUrl = await captureCard(previewRef.current);
+      const dataUrl = await renderCardToCanvas(card);
       const img = await loadImage(dataUrl);
 
       const canvas = document.createElement("canvas");
@@ -121,11 +230,10 @@ export default function Step5Save({ previewRef }: Props) {
       const ctx = canvas.getContext("2d")!;
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, DOUBLE_CANVAS_W, DOUBLE_CANVAS_H);
-      ctx.drawImage(img, DOUBLE_MARGIN_LR, DOUBLE_MARGIN_TOP, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-      ctx.drawImage(img, DOUBLE_MARGIN_LR + OUTPUT_WIDTH, DOUBLE_MARGIN_TOP, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+      ctx.drawImage(img, DOUBLE_MARGIN_LR, DOUBLE_MARGIN_TOP, W, H);
+      ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
-      const doubleUrl = canvas.toDataURL("image/png");
-      download(doubleUrl, `token_double_${formatTimestamp()}.png`);
+      download(canvas.toDataURL("image/png"), `token_double_${formatTimestamp()}.png`);
       setMessage("2枚並び画像を保存しました！");
     } catch (err) {
       console.error(err);
@@ -139,7 +247,7 @@ export default function Step5Save({ previewRef }: Props) {
     <div className="flex flex-col items-center gap-4 py-4">
       <div className="text-center">
         <p className="text-sm text-gray-600">プレビューのカードをPNG画像として保存します。</p>
-        <p className="text-xs text-gray-400 mt-1">出力サイズ: {OUTPUT_WIDTH} × {OUTPUT_HEIGHT} px</p>
+        <p className="text-xs text-gray-400 mt-1">出力サイズ: {W} × {H} px</p>
       </div>
 
       <button

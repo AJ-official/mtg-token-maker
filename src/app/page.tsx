@@ -104,7 +104,7 @@ export default function Home() {
           />
         );
       case 5:
-        return <Step5Save previewRef={previewRef} />;
+        return <Step5Save card={card} />;
       default:
         return null;
     }

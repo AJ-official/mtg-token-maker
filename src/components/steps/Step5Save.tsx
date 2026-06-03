@@ -17,27 +17,50 @@ const DOUBLE_MARGIN_BOTTOM = 35;
 const DOUBLE_CANVAS_W = OUTPUT_WIDTH * 2 + DOUBLE_MARGIN_LR * 2;              // 2620
 const DOUBLE_CANVAS_H = OUTPUT_HEIGHT + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM; // 1860
 
+async function fetchDataUrl(src: string): Promise<string> {
+  const res = await fetch(src);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function captureCard(el: HTMLDivElement): Promise<string> {
   const ratio = OUTPUT_WIDTH / el.offsetWidth;
 
-  // 1回目: 画像をブラウザキャッシュに読み込む（モバイル対策）
-  try { await toPng(el, { pixelRatio: 1 }); } catch (_) {}
+  // キャプチャ前に全<img>をdata URLに置換（モバイルでhtml-to-imageが画像を取得できない問題の根本対策）
+  const imgs = Array.from(el.querySelectorAll("img"));
+  const origSrcs = imgs.map((img) => img.getAttribute("src") ?? "");
+  await Promise.all(
+    imgs.map(async (img) => {
+      try {
+        img.src = await fetchDataUrl(img.src);
+      } catch (_) {}
+    })
+  );
 
-  // 2回目: キャッシュ済み画像で本番キャプチャ
-  const dataUrl = await toPng(el, { pixelRatio: ratio });
+  let dataUrl: string;
+  try {
+    dataUrl = await toPng(el, { pixelRatio: ratio });
+  } finally {
+    imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+  }
 
-  const img = await loadImage(dataUrl);
-  if (img.naturalWidth === OUTPUT_WIDTH && img.naturalHeight === OUTPUT_HEIGHT) {
+  const captured = await loadImage(dataUrl);
+  if (captured.naturalWidth === OUTPUT_WIDTH && captured.naturalHeight === OUTPUT_HEIGHT) {
     return dataUrl;
   }
 
-  // キャプチャサイズが想定と異なる場合、上部余白をトリミングして正確なサイズに揃える
+  // 上部余白をトリミングして正確なサイズに揃える
   const canvas = document.createElement("canvas");
   canvas.width = OUTPUT_WIDTH;
   canvas.height = OUTPUT_HEIGHT;
   const ctx = canvas.getContext("2d")!;
-  const srcY = img.naturalHeight - OUTPUT_HEIGHT;
-  ctx.drawImage(img, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+  const srcY = captured.naturalHeight - OUTPUT_HEIGHT;
+  ctx.drawImage(captured, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
   return canvas.toDataURL("image/png");
 }
 

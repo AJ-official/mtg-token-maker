@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { flushSync } from "react-dom";
 import { toPng } from "html-to-image";
 import { formatTimestamp } from "@/lib/utils";
 
@@ -32,37 +31,42 @@ async function fetchDataUrl(src: string): Promise<string> {
 async function captureCard(el: HTMLDivElement): Promise<string> {
   const ratio = OUTPUT_WIDTH / el.offsetWidth;
 
-  // キャプチャ前に全<img>をdata URLに置換（モバイルでhtml-to-imageが画像を取得できない問題の根本対策）
-  const imgs = Array.from(el.querySelectorAll("img"));
-  const origSrcs = imgs.map((img) => img.getAttribute("src") ?? "");
-  await Promise.all(
-    imgs.map(async (img) => {
-      try {
-        img.src = await fetchDataUrl(img.src);
-      } catch (_) {}
-    })
-  );
+  // 元のDOMを変更しないようオフスクリーンのクローンを作成（Reactの再レンダリングで壊れない）
+  const clone = el.cloneNode(true) as HTMLDivElement;
+  clone.style.position = "fixed";
+  clone.style.top = "-99999px";
+  clone.style.left = "-99999px";
+  clone.style.width = `${el.offsetWidth}px`;
+  clone.style.height = `${el.offsetHeight}px`;
+  document.body.appendChild(clone);
 
-  let dataUrl: string;
   try {
-    dataUrl = await toPng(el, { pixelRatio: ratio });
+    // クローン内の全<img>をdata URLに置換（html-to-imageの外部フェッチを不要にする）
+    const imgs = Array.from(clone.querySelectorAll("img"));
+    await Promise.all(
+      imgs.map(async (img) => {
+        try { img.src = await fetchDataUrl(img.src); } catch (_) {}
+      })
+    );
+
+    const dataUrl = await toPng(clone, { pixelRatio: ratio });
+
+    const captured = await loadImage(dataUrl);
+    if (captured.naturalWidth === OUTPUT_WIDTH && captured.naturalHeight === OUTPUT_HEIGHT) {
+      return dataUrl;
+    }
+
+    // 上部余白をトリミングして正確なサイズに揃える
+    const canvas = document.createElement("canvas");
+    canvas.width = OUTPUT_WIDTH;
+    canvas.height = OUTPUT_HEIGHT;
+    const ctx = canvas.getContext("2d")!;
+    const srcY = captured.naturalHeight - OUTPUT_HEIGHT;
+    ctx.drawImage(captured, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+    return canvas.toDataURL("image/png");
   } finally {
-    imgs.forEach((img, i) => { img.src = origSrcs[i]; });
+    document.body.removeChild(clone);
   }
-
-  const captured = await loadImage(dataUrl);
-  if (captured.naturalWidth === OUTPUT_WIDTH && captured.naturalHeight === OUTPUT_HEIGHT) {
-    return dataUrl;
-  }
-
-  // 上部余白をトリミングして正確なサイズに揃える
-  const canvas = document.createElement("canvas");
-  canvas.width = OUTPUT_WIDTH;
-  canvas.height = OUTPUT_HEIGHT;
-  const ctx = canvas.getContext("2d")!;
-  const srcY = captured.naturalHeight - OUTPUT_HEIGHT;
-  ctx.drawImage(captured, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
-  return canvas.toDataURL("image/png");
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -90,11 +94,8 @@ export default function Step5Save({ previewRef }: Props) {
 
   const handleSave = async () => {
     if (!previewRef.current) return;
-    // flushSyncでReactの再レンダリングをキャプチャ前に完了させる（モバイル対策）
-    flushSync(() => {
-      setSaving(true);
-      setMessage(null);
-    });
+    setSaving(true);
+    setMessage(null);
     try {
       const dataUrl = await captureCard(previewRef.current);
       download(dataUrl, `token_${formatTimestamp()}.png`);
@@ -109,10 +110,8 @@ export default function Step5Save({ previewRef }: Props) {
 
   const handleSaveDouble = async () => {
     if (!previewRef.current) return;
-    flushSync(() => {
-      setSavingDouble(true);
-      setMessage(null);
-    });
+    setSavingDouble(true);
+    setMessage(null);
     try {
       const dataUrl = await captureCard(previewRef.current);
       const img = await loadImage(dataUrl);

@@ -31,14 +31,13 @@ async function fetchDataUrl(src: string): Promise<string> {
 async function captureCard(el: HTMLDivElement): Promise<string> {
   const ratio = OUTPUT_WIDTH / el.offsetWidth;
 
-  // 元のDOMを変更しないようオフスクリーンのクローンを作成（Reactの再レンダリングで壊れない）
+  // クローン自体のスタイルは変えず、ラッパーだけオフスクリーンに置く
+  // （cloneにposition:fixedを設定するとhtml-to-imageの描画が崩れる）
+  const wrapper = document.createElement("div");
+  wrapper.style.cssText = `position:fixed;top:-99999px;left:-99999px;width:${el.offsetWidth}px;pointer-events:none;`;
   const clone = el.cloneNode(true) as HTMLDivElement;
-  clone.style.position = "fixed";
-  clone.style.top = "-99999px";
-  clone.style.left = "-99999px";
-  clone.style.width = `${el.offsetWidth}px`;
-  clone.style.height = `${el.offsetHeight}px`;
-  document.body.appendChild(clone);
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
 
   try {
     // クローン内の全<img>をdata URLに置換（html-to-imageの外部フェッチを不要にする）
@@ -65,7 +64,7 @@ async function captureCard(el: HTMLDivElement): Promise<string> {
     ctx.drawImage(captured, 0, srcY, OUTPUT_WIDTH, OUTPUT_HEIGHT, 0, 0, OUTPUT_WIDTH, OUTPUT_HEIGHT);
     return canvas.toDataURL("image/png");
   } finally {
-    document.body.removeChild(clone);
+    document.body.removeChild(wrapper);
   }
 }
 

@@ -18,17 +18,20 @@ const DOUBLE_CANVAS_W = OUTPUT_WIDTH * 2 + DOUBLE_MARGIN_LR * 2;              //
 const DOUBLE_CANVAS_H = OUTPUT_HEIGHT + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM; // 1860
 
 async function captureCard(el: HTMLDivElement): Promise<string> {
-  const dataUrl = await toPng(el, {
-    pixelRatio: OUTPUT_WIDTH / el.offsetWidth,
-    cacheBust: true,
-  });
+  const ratio = OUTPUT_WIDTH / el.offsetWidth;
+
+  // 1回目: 画像をブラウザキャッシュに読み込む（モバイル対策）
+  try { await toPng(el, { pixelRatio: 1 }); } catch (_) {}
+
+  // 2回目: キャッシュ済み画像で本番キャプチャ
+  const dataUrl = await toPng(el, { pixelRatio: ratio });
 
   const img = await loadImage(dataUrl);
   if (img.naturalWidth === OUTPUT_WIDTH && img.naturalHeight === OUTPUT_HEIGHT) {
     return dataUrl;
   }
 
-  // キャプチャサイズが想定と異なる場合、上部の余白をトリミングして正確なサイズに揃える
+  // キャプチャサイズが想定と異なる場合、上部余白をトリミングして正確なサイズに揃える
   const canvas = document.createElement("canvas");
   canvas.width = OUTPUT_WIDTH;
   canvas.height = OUTPUT_HEIGHT;

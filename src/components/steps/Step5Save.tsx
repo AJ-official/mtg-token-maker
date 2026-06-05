@@ -22,19 +22,30 @@ const DOUBLE_CANVAS_H = H + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM;
 
 // ── Canvas描画とCSSプレビューの位置差を補正する定数 ──────────────────
 // CSSはline-heightで文字上下に余白が入る・height:%で画像を縦長divに中央配置する。
-// Canvasはtextbaseline="top"で余白なし・top座標に直接配置するため上にずれて見える。
-// 正の値 = 下にずらす（プレビューに合わせる）。単位: canvas px (1260×1760基準)
+// Canvasはtextbaseline="top"で余白なし・top座標に直接配置するためずれて見える。
+// 正の値 = 下にずらす。単位: canvas px (1260×1760基準)
 //
 // 【調整方法】保存画像とプレビューを比較し、ずれたpx数をこの値に加算/減算する。
-// 例: タイトルがまだ5px上にずれている → titleY を +5 増やす
+// iPhoneでずれる場合は IOS_FONT_OFFSET を調整する（負の値=上にずらす）。
+const isIOS = typeof navigator !== "undefined" && (
+  /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+);
+
+// iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
+// この値で補正する（負の値=iOSのADJを減らして上にずらす）
+const IOS_FONT_OFFSET = -5;
+
+const f = (pcVal: number) => pcVal + (isIOS ? IOS_FONT_OFFSET : 0);
+
 const ADJ = {
-  titleY:   11,  // テキスト line-height補正: 4.5cqw(56.7px) × 0.1 ≈ 5.7px (+5調整)
-  manaY:    20,  // 画像 height:8% センタリング補正: (141px - 101px) / 2 ≈ 20px
-  typeY:    15,  // テキスト line-height補正: 3.8cqw(47.9px) × 0.1 ≈ 4.8px (+10調整)
-  symbolY:  23,  // 画像 height:9% センタリング補正: (159px - 113px) / 2 ≈ 23px
-  textboxY: 4,   // テキスト line-height補正: 3.2cqw(40.3px) × 0.1 ≈ 4px
-  ptY:      -1,  // テキスト line-height補正: 5.2cqw(65.5px) × 0.1 ≈ 6.5px (-8調整)
-  loyaltyY: 7,   // テキスト line-height補正: 5.5cqw(69.3px) × 0.1 ≈ 6.9px
+  titleY:   f(11),  // PC:11 / iOS:6
+  manaY:    20,     // 画像のため platform offset 不要
+  typeY:    f(15),  // PC:15 / iOS:10
+  symbolY:  23,     // 画像のため platform offset 不要
+  textboxY: f(4),   // PC:4  / iOS:-1
+  ptY:      f(-1),  // PC:-1 / iOS:-6
+  loyaltyY: f(7),   // PC:7  / iOS:2
 };
 // ────────────────────────────────────────────────────────────────────
 

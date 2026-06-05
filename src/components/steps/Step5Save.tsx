@@ -28,7 +28,7 @@ const DOUBLE_CANVAS_H = H + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM;
 // 【調整方法】保存画像とプレビューを比較し、ずれたpx数をこの値に加算/減算する。
 // 例: タイトルがまだ5px上にずれている → titleY を +5 増やす
 const ADJ = {
-  titleY:   6,   // テキスト line-height補正: 4.5cqw(56.7px) × 0.1 ≈ 5.7px
+  titleY:   11,  // テキスト line-height補正: 4.5cqw(56.7px) × 0.1 ≈ 5.7px (+5調整)
   manaY:    20,  // 画像 height:8% センタリング補正: (141px - 101px) / 2 ≈ 20px
   typeY:    15,  // テキスト line-height補正: 3.8cqw(47.9px) × 0.1 ≈ 4.8px (+10調整)
   symbolY:  23,  // 画像 height:9% センタリング補正: (159px - 113px) / 2 ≈ 23px

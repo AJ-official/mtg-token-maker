@@ -34,7 +34,7 @@ const isIOS = typeof navigator !== "undefined" && (
 
 // iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
 // この値で補正する（負の値=iOSのADJを減らして上にずらす）
-const IOS_FONT_OFFSET = -10;
+const IOS_FONT_OFFSET = -15;
 
 const f = (pcVal: number) => pcVal + (isIOS ? IOS_FONT_OFFSET : 0);
 

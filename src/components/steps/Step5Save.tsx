@@ -245,14 +245,20 @@ export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // iOS Safari は非同期後の link.click() をブロックするためモーダルで画像表示
+  const [iosModal, setIosModal] = useState<string | null>(null);
 
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
     try {
       const dataUrl = await renderCardToCanvas(card);
-      download(dataUrl, `token_${formatTimestamp()}.png`);
-      setMessage("保存しました！");
+      if (isIOS) {
+        setIosModal(dataUrl);
+      } else {
+        download(dataUrl, `token_${formatTimestamp()}.png`);
+        setMessage("保存しました！");
+      }
     } catch (err) {
       console.error(err);
       setMessage("保存に失敗しました。もう一度お試しください。");
@@ -277,8 +283,13 @@ export default function Step5Save({ card }: Props) {
       ctx.drawImage(img, DOUBLE_MARGIN_LR, DOUBLE_MARGIN_TOP, W, H);
       ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
-      download(canvas.toDataURL("image/png"), `token_double_${formatTimestamp()}.png`);
-      setMessage("2枚並び画像を保存しました！");
+      const doubleUrl = canvas.toDataURL("image/png");
+      if (isIOS) {
+        setIosModal(doubleUrl);
+      } else {
+        download(doubleUrl, `token_double_${formatTimestamp()}.png`);
+        setMessage("2枚並び画像を保存しました！");
+      }
     } catch (err) {
       console.error(err);
       setMessage("保存に失敗しました。もう一度お試しください。");
@@ -288,34 +299,60 @@ export default function Step5Save({ card }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-4 py-4">
-      <div className="text-center">
-        <p className="text-sm text-gray-600">プレビューのカードをPNG画像として保存します。</p>
-        <p className="text-xs text-gray-400 mt-1">出力サイズ: {W} × {H} px</p>
-      </div>
-
-      <button
-        onClick={handleSave}
-        disabled={saving || savingDouble}
-        className="w-full py-4 rounded-2xl bg-amber-500 text-white font-bold text-lg active:bg-amber-600 disabled:opacity-50"
-      >
-        {saving ? "保存中..." : "トークンを画像として保存"}
-      </button>
-
-      <button
-        onClick={handleSaveDouble}
-        disabled={saving || savingDouble}
-        className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold text-lg active:bg-blue-600 disabled:opacity-50"
-      >
-        {savingDouble ? "保存中..." : "コンビニ印刷用Ｗ保存"}
-      </button>
-      <p className="text-xs text-gray-400">2枚横並び（余白込み）: {DOUBLE_CANVAS_W} × {DOUBLE_CANVAS_H} px</p>
-
-      {message && (
-        <p className={`text-sm font-medium ${message.includes("失敗") ? "text-red-500" : "text-green-600"}`}>
-          {message}
-        </p>
+    <>
+      {/* iOS用モーダル：長押しして保存してもらう */}
+      {iosModal && (
+        <div
+          className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-5 p-5"
+          onClick={() => setIosModal(null)}
+        >
+          <p className="text-white text-base font-bold text-center">
+            画像を長押し →「写真に追加」で保存
+          </p>
+          <img
+            src={iosModal}
+            alt="保存用画像"
+            className="max-w-full max-h-[72vh] object-contain rounded-xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setIosModal(null)}
+            className="px-8 py-3 bg-white rounded-full text-black font-bold text-sm"
+          >
+            閉じる
+          </button>
+        </div>
       )}
-    </div>
+
+      <div className="flex flex-col items-center gap-4 py-4">
+        <div className="text-center">
+          <p className="text-sm text-gray-600">プレビューのカードをPNG画像として保存します。</p>
+          <p className="text-xs text-gray-400 mt-1">出力サイズ: {W} × {H} px</p>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={saving || savingDouble}
+          className="w-full py-4 rounded-2xl bg-amber-500 text-white font-bold text-lg active:bg-amber-600 disabled:opacity-50"
+        >
+          {saving ? "保存中..." : "トークンを画像として保存"}
+        </button>
+
+        <button
+          onClick={handleSaveDouble}
+          disabled={saving || savingDouble}
+          className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold text-lg active:bg-blue-600 disabled:opacity-50"
+        >
+          {savingDouble ? "保存中..." : "コンビニ印刷用Ｗ保存"}
+        </button>
+        <p className="text-xs text-gray-400">2枚横並び（余白込み）: {DOUBLE_CANVAS_W} × {DOUBLE_CANVAS_H} px</p>
+
+        {message && (
+          <p className={`text-sm font-medium ${message.includes("失敗") ? "text-red-500" : "text-green-600"}`}>
+            {message}
+          </p>
+        )}
+      </div>
+    </>
   );
 }

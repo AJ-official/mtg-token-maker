@@ -20,6 +20,24 @@ const DOUBLE_MARGIN_BOTTOM = 35;
 const DOUBLE_CANVAS_W = W * 2 + DOUBLE_MARGIN_LR * 2;
 const DOUBLE_CANVAS_H = H + DOUBLE_MARGIN_TOP + DOUBLE_MARGIN_BOTTOM;
 
+// ── Canvas描画とCSSプレビューの位置差を補正する定数 ──────────────────
+// CSSはline-heightで文字上下に余白が入る・height:%で画像を縦長divに中央配置する。
+// Canvasはtextbaseline="top"で余白なし・top座標に直接配置するため上にずれて見える。
+// 正の値 = 下にずらす（プレビューに合わせる）。単位: canvas px (1260×1760基準)
+//
+// 【調整方法】保存画像とプレビューを比較し、ずれたpx数をこの値に加算/減算する。
+// 例: タイトルがまだ5px上にずれている → titleY を +5 増やす
+const ADJ = {
+  titleY:   6,   // テキスト line-height補正: 4.5cqw(56.7px) × 0.1 ≈ 5.7px
+  manaY:    20,  // 画像 height:8% センタリング補正: (141px - 101px) / 2 ≈ 20px
+  typeY:    5,   // テキスト line-height補正: 3.8cqw(47.9px) × 0.1 ≈ 4.8px
+  symbolY:  23,  // 画像 height:9% センタリング補正: (159px - 113px) / 2 ≈ 23px
+  textboxY: 4,   // テキスト line-height補正: 3.2cqw(40.3px) × 0.1 ≈ 4px
+  ptY:      7,   // テキスト line-height補正: 5.2cqw(65.5px) × 0.1 ≈ 6.5px
+  loyaltyY: 7,   // テキスト line-height補正: 5.5cqw(69.3px) × 0.1 ≈ 6.9px
+};
+// ────────────────────────────────────────────────────────────────────
+
 // fetch → blob URL でCanvas汚染を防いで画像を読み込む
 async function loadImg(src: string): Promise<HTMLImageElement> {
   const res = await fetch(src);
@@ -95,7 +113,7 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
       .filter(Boolean);
 
     const manaSize = pctW(frame.manaArea.size);
-    const manaTop  = pctH(frame.manaArea.top);
+    const manaTop  = pctH(frame.manaArea.top) + ADJ.manaY;
 
     await Promise.all(activeManas.map(async (m, i) => {
       try {
@@ -112,8 +130,8 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
     try {
       const img = await loadImg("/symbol/symbol.png");
       const symW = pctW("9");
-      const symH = pctW("9"); // pctH → pctW: 正方形に修正
-      ctx.drawImage(img, W - pctW("6.7") - symW, pctH("65.7"), symW, symH);
+      const symH = pctW("9"); // 正方形（pctHだと縦長になるため）
+      ctx.drawImage(img, W - pctW("6.7") - symW, pctH("65.7") + ADJ.symbolY, symW, symH);
     } catch (_) {}
   }
 
@@ -140,16 +158,16 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
 
     // カード名
     ctx.font = `bold ${cqw("4.5")}px ${fontFamily}`;
-    ctx.fillText(card.title || "カード名", pctW("8"), pctH("5.7"), pctW("75"));
+    ctx.fillText(card.title || "カード名", pctW("8"), pctH("5.7") + ADJ.titleY, pctW("75"));
 
     // カードタイプ
     ctx.font = `${cqw("3.8")}px ${fontFamily}`;
-    ctx.fillText(card.subtype || "カードタイプ", pctW("8"), pctH("68"), pctW("82"));
+    ctx.fillText(card.subtype || "カードタイプ", pctW("8"), pctH("68") + ADJ.typeY, pctW("82"));
 
     // カードテキスト（自動折り返し・縮小）
     if (card.cardText) {
       const tbLeft = pctW("10");
-      const tbTop  = pctH("75.5");
+      const tbTop  = pctH("75.5") + ADJ.textboxY;
       const tbW    = pctW("80");
       const tbH    = pctH("18");
       let fs = cqw("3.2");
@@ -168,7 +186,7 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
     if (isCreature && frame.ptArea) {
       const ptFs = cqw("5.2");
       ctx.font = `bold ${ptFs}px ${fontFamily}`;
-      const ptTop   = pctH("90");
+      const ptTop   = pctH("90") + ADJ.ptY;
       const ptBoxL  = 0.77 * W;
       const ptBoxW  = W - ptBoxL - 0.047 * W;
       const p = card.power || "0";
@@ -187,7 +205,7 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
       const loyFs = cqw("5.5");
       ctx.font = `bold ${loyFs}px ${fontFamily}`;
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(card.loyalty || "0", pctW("84.5"), pctH("89"));
+      ctx.fillText(card.loyalty || "0", pctW("84.5"), pctH("89") + ADJ.loyaltyY);
     }
   }
 

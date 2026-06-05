@@ -112,23 +112,38 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
     try {
       const img = await loadImg("/symbol/symbol.png");
       const symW = pctW("9");
-      const symH = pctH("9");
+      const symH = pctW("9"); // pctH → pctW: 正方形に修正
       ctx.drawImage(img, W - pctW("6.7") - symW, pctH("65.7"), symW, symH);
     } catch (_) {}
   }
 
   // テキスト
   if (frame) {
-    await document.fonts.ready;
+    // next/font/google はVercel本番環境で "__Noto_Sans_JP_xxxx" のような独自名でフォントを登録する。
+    // CSSカスタムプロパティから実際のフォントファミリー名を取得してcanvasに使用する。
+    const fontFamily =
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--font-noto-sans-jp")
+        .trim() || '"Noto Sans JP", sans-serif';
+
+    // 使用するサイズのフォントを明示的にロードしてからcanvasで描画する
+    await Promise.allSettled([
+      document.fonts.load(`bold ${cqw("4.5")}px ${fontFamily}`),
+      document.fonts.load(`${cqw("3.8")}px ${fontFamily}`),
+      document.fonts.load(`bold ${cqw("5.2")}px ${fontFamily}`),
+      document.fonts.load(`bold ${cqw("5.5")}px ${fontFamily}`),
+      document.fonts.load(`${cqw("3.2")}px ${fontFamily}`),
+    ]);
+
     ctx.textBaseline = "top";
     ctx.fillStyle = "#000000";
 
     // カード名
-    ctx.font = `bold ${cqw("4.5")}px "Noto Sans JP", sans-serif`;
+    ctx.font = `bold ${cqw("4.5")}px ${fontFamily}`;
     ctx.fillText(card.title || "カード名", pctW("8"), pctH("5.7"), pctW("75"));
 
     // カードタイプ
-    ctx.font = `${cqw("3.8")}px "Noto Sans JP", sans-serif`;
+    ctx.font = `${cqw("3.8")}px ${fontFamily}`;
     ctx.fillText(card.subtype || "カードタイプ", pctW("8"), pctH("68"), pctW("82"));
 
     // カードテキスト（自動折り返し・縮小）
@@ -140,19 +155,19 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
       let fs = cqw("3.2");
       let lines: string[] = [];
       while (fs >= 12) {
-        ctx.font = `${fs}px "Noto Sans JP", sans-serif`;
+        ctx.font = `${fs}px ${fontFamily}`;
         lines = getWrappedLines(ctx, card.cardText, tbW);
         if (lines.length * fs * 1.4 <= tbH) break;
         fs = Math.floor(fs * 0.9);
       }
-      ctx.font = `${fs}px "Noto Sans JP", sans-serif`;
+      ctx.font = `${fs}px ${fontFamily}`;
       lines.forEach((line, i) => ctx.fillText(line, tbLeft, tbTop + i * fs * 1.4));
     }
 
     // P/T（クリーチャーのみ）
     if (isCreature && frame.ptArea) {
       const ptFs = cqw("5.2");
-      ctx.font = `bold ${ptFs}px "Noto Sans JP", sans-serif`;
+      ctx.font = `bold ${ptFs}px ${fontFamily}`;
       const ptTop   = pctH("90");
       const ptBoxL  = 0.77 * W;
       const ptBoxW  = W - ptBoxL - 0.047 * W;
@@ -170,7 +185,7 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
     // 忠誠度（プレインズウォーカーのみ）
     if (isPlaneswalker && frame.loyaltyArea) {
       const loyFs = cqw("5.5");
-      ctx.font = `bold ${loyFs}px "Noto Sans JP", sans-serif`;
+      ctx.font = `bold ${loyFs}px ${fontFamily}`;
       ctx.fillStyle = "#ffffff";
       ctx.fillText(card.loyalty || "0", pctW("84.5"), pctH("89"));
     }

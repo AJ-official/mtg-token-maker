@@ -57,13 +57,14 @@ export default function BottomSheet({
         >
           戻る
         </button>
-        <button
-          onClick={onNext}
-          disabled={currentStep === totalSteps}
-          className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold disabled:opacity-30 active:bg-amber-600"
-        >
-          次へ
-        </button>
+        {currentStep < totalSteps && (
+          <button
+            onClick={onNext}
+            className="flex-1 py-3 rounded-xl bg-amber-500 text-white font-bold active:bg-amber-600"
+          >
+            次へ
+          </button>
+        )}
       </div>
     </div>
   );

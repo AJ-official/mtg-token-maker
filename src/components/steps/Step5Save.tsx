@@ -288,7 +288,7 @@ export default function Step5Save({ card }: Props) {
         setIosModal(doubleUrl);
       } else {
         download(doubleUrl, `token_double_${formatTimestamp()}.png`);
-        setMessage("保存した画像をコンビニプリント（L判写真の設定）で印刷");
+        setMessage("コンビニプリント（L判写真）で印刷してください。");
       }
     } catch (err) {
       console.error(err);
@@ -326,7 +326,7 @@ export default function Step5Save({ card }: Props) {
 
       <div className="flex flex-col items-center gap-4 py-4">
         <div className="text-center">
-          <p className="text-sm text-gray-600">保存ボタンを押しても自動的にダウンロードされない場合は、画面の指示に従って「画像長押し」で保存してください</p>
+          <p className="text-sm text-gray-600">保存を押してもダウンロードされない場合は、画面の指示に従って「画像長押し」で保存してください。</p>
         </div>
 
         <button

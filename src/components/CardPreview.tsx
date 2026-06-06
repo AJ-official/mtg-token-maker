@@ -199,7 +199,7 @@ export default function CardPreview({ card, previewRef }: Props) {
               className="absolute font-bold text-white text-center"
               style={{
                 top: frame.loyaltyArea.top,
-                left: frame.loyaltyArea.left,
+                left: "81%",
                 width: "12%",
                 fontSize: frame.loyaltyArea.fontSize,
                 fontWeight: frame.loyaltyArea.fontWeight,

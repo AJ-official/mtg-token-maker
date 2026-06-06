@@ -288,7 +288,7 @@ export default function Step5Save({ card }: Props) {
         setIosModal(doubleUrl);
       } else {
         download(doubleUrl, `token_double_${formatTimestamp()}.png`);
-        setMessage("2枚並び画像を保存しました！");
+        setMessage("保存した画像をコンビニプリント（L判写真の設定）で印刷");
       }
     } catch (err) {
       console.error(err);
@@ -326,8 +326,7 @@ export default function Step5Save({ card }: Props) {
 
       <div className="flex flex-col items-center gap-4 py-4">
         <div className="text-center">
-          <p className="text-sm text-gray-600">プレビューのカードをPNG画像として保存します。</p>
-          <p className="text-xs text-gray-400 mt-1">出力サイズ: {W} × {H} px</p>
+          <p className="text-sm text-gray-600">保存ボタンを押しても自動的にダウンロードされない場合は、画面の指示に従って「画像長押し」で保存してください</p>
         </div>
 
         <button
@@ -345,7 +344,6 @@ export default function Step5Save({ card }: Props) {
         >
           {savingDouble ? "保存中..." : "コンビニ印刷用Ｗ保存"}
         </button>
-        <p className="text-xs text-gray-400">2枚横並び（余白込み）: {DOUBLE_CANVAS_W} × {DOUBLE_CANVAS_H} px</p>
 
         {message && (
           <p className={`text-sm font-medium ${message.includes("失敗") ? "text-red-500" : "text-green-600"}`}>

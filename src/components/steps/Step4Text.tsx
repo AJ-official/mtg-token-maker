@@ -102,7 +102,7 @@ export default function Step4Text({
           onChange={(e) => onTitleChange(e.target.value)}
           maxLength={40}
           placeholder="例：ラノワールのエルフ"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
       </div>
 
@@ -115,7 +115,7 @@ export default function Step4Text({
           onChange={(e) => onSubtypeChange(e.target.value)}
           maxLength={40}
           placeholder="例：クリーチャー ― エルフ・ドルイド"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
         />
       </div>
 
@@ -128,7 +128,7 @@ export default function Step4Text({
           maxLength={300}
           rows={4}
           placeholder="例：T：緑を加える。"
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
         />
       </div>
 
@@ -143,7 +143,7 @@ export default function Step4Text({
               onChange={(e) => onPowerChange(e.target.value)}
               maxLength={4}
               placeholder="P"
-              className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
             <span className="text-gray-500 font-bold">/</span>
             <input
@@ -152,7 +152,7 @@ export default function Step4Text({
               onChange={(e) => onToughnessChange(e.target.value)}
               maxLength={4}
               placeholder="T"
-              className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
+              className="w-20 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
             />
           </div>
         </div>
@@ -168,7 +168,7 @@ export default function Step4Text({
             onChange={(e) => onLoyaltyChange(e.target.value)}
             maxLength={4}
             placeholder="0"
-            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-amber-400"
+            className="w-24 border border-gray-300 rounded-lg px-3 py-2 text-sm text-center text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
           />
         </div>
       )}

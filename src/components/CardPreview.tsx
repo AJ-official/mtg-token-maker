@@ -196,10 +196,11 @@ export default function CardPreview({ card, previewRef }: Props) {
           {/* 忠誠度（プレインズウォーカーのみ） */}
           {isPlaneswalker && frame.loyaltyArea && (
             <div
-              className="absolute font-bold text-white"
+              className="absolute font-bold text-white text-center"
               style={{
                 top: frame.loyaltyArea.top,
                 left: frame.loyaltyArea.left,
+                width: "12%",
                 fontSize: frame.loyaltyArea.fontSize,
                 fontWeight: frame.loyaltyArea.fontWeight,
               }}

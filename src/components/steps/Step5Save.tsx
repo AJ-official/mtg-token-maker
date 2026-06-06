@@ -216,7 +216,8 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
       const loyFs = cqw("5.5");
       ctx.font = `bold ${loyFs}px ${fontFamily}`;
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(card.loyalty || "0", pctW("84.5"), pctH("89") + ADJ.loyaltyY);
+      ctx.textAlign = "center";
+      ctx.fillText(card.loyalty || "0", pctW("90.5"), pctH("89") + ADJ.loyaltyY);
     }
   }
 

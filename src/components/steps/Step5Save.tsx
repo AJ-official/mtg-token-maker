@@ -45,7 +45,7 @@ const ADJ = {
   symbolY:  23,     // 画像のため platform offset 不要
   textboxY: f(4),   // PC:4  / iOS:-1
   ptY:      f(-1) + (isIOS ? -5 : 0),  // PC:-1 / iOS:-21
-  loyaltyY: f(7),   // PC:7  / iOS:2
+  loyaltyY: f(7) + (isIOS ? 0 : 10),  // PC:17 / iOS:-8
 };
 // ────────────────────────────────────────────────────────────────────
 

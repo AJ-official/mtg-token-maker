@@ -302,7 +302,7 @@ export default function Home() {
               </div>
 
               <p className="text-sm text-gray-400 leading-relaxed">
-                A.J.やアプリへのご感想・ご連絡などはXのDMまでお願いします。
+                　アプリへのご感想やA.J.へのご連絡などはXのDMまでお願いします。
               </p>
             </div>
           </div>

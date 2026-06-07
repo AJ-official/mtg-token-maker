@@ -10,7 +10,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-const STEP_LABELS = ["カード種類", "フレーム", "イラスト", "テキスト", "保存"];
+const STEP_LABELS = ["カードの種類", "フレーム", "イラスト", "テキスト", "保存"];
 
 export default function BottomSheet({
   currentStep,

@@ -259,47 +259,49 @@ export default function Home() {
         {activeTab === "credit" && (
           <div className="flex-1 overflow-y-auto pb-6">
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
-              {/* A.J. プロフィール */}
-              <div className="flex items-center gap-4 mb-5">
+              {/* アイコン（中央揃え・大） */}
+              <div className="flex justify-center mb-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/aj_icon.jpg"
                   alt="A.J."
-                  className="w-20 h-20 rounded-full object-cover flex-shrink-0"
+                  className="w-36 h-36 rounded-full object-cover"
                 />
-                <div>
-                  <p className="text-xs text-gray-400 mb-0.5">アプリ制作者</p>
-                  <p className="text-base font-bold text-gray-800">A.J.</p>
-                </div>
               </div>
 
-              {/* リンク */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-xs w-12 flex-shrink-0">X</span>
+              {/* アプリ制作者 A.J.（中央揃え） */}
+              <div className="flex items-baseline justify-center gap-2 mb-4">
+                <span className="text-sm text-gray-400">アプリ制作者</span>
+                <span className="text-2xl font-bold text-gray-800">A.J.</span>
+              </div>
+
+              {/* X と BOOTH を横並び */}
+              <div className="flex items-center justify-center gap-6 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-gray-400">X</span>
                   <a
                     href="https://x.com/JanadoNovel"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-amber-500 underline break-all"
+                    className="text-sm text-amber-500 underline"
                   >
                     @JanadoNovel
                   </a>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-gray-400 text-xs w-12 flex-shrink-0">BOOTH</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm text-gray-400">BOOTH</span>
                   <a
                     href="https://ajofficial.booth.pm/"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-sm text-amber-500 underline break-all"
+                    className="text-sm text-amber-500 underline"
                   >
                     ajofficial.booth.pm
                   </a>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-400 mt-5 leading-relaxed">
+              <p className="text-sm text-gray-400 leading-relaxed">
                 A.J.やアプリへのご感想・ご連絡などはXのDMまでお願いします。
               </p>
             </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { formatTimestamp } from "@/lib/utils";
 import { CardState, ManaType, MANA_SLOTS } from "@/types/card";
 import { getFrameById } from "@/config/frames";
@@ -34,9 +34,6 @@ const isIOS = typeof navigator !== "undefined" && (
 
 // LINEの内蔵ブラウザは <a download> によるダウンロードが動作しないためモーダル表示に切り替える
 const isLINE = typeof navigator !== "undefined" && /Line\//i.test(navigator.userAgent);
-
-// モーダル表示が必要な環境
-const useModal = isIOS || isLINE;
 
 // iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
 // この値で補正する（負の値=iOSのADJを減らして上にずらす）
@@ -256,12 +253,13 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([bytes], { type: mime });
 }
 
-// Web Share API でファイル共有（Android向け）
+// Web Share API でファイル共有（Android LINE 向け）
+// canShare は LINE の WebView に存在しない場合があるため、存在する場合のみ使用する
 async function tryWebShare(dataUrl: string, filename: string): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.share || !navigator.canShare) return false;
+  if (typeof navigator === "undefined" || !navigator.share) return false;
   try {
     const file = new File([dataUrlToBlob(dataUrl)], filename, { type: "image/png" });
-    if (!navigator.canShare({ files: [file] })) return false;
+    if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) return false;
     await navigator.share({ files: [file] });
     return true;
   } catch (e) {
@@ -284,15 +282,6 @@ export default function Step5Save({ card }: Props) {
       return null;
     });
   }, []);
-
-  // Androidの「戻る」ボタンでモーダルを閉じる
-  useEffect(() => {
-    if (!iosModal) return;
-    window.history.pushState({ modal: true }, "");
-    const onPop = () => closeModal();
-    window.addEventListener("popstate", onPop);
-    return () => window.removeEventListener("popstate", onPop);
-  }, [iosModal, closeModal]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -362,7 +351,9 @@ export default function Step5Save({ card }: Props) {
           onClick={closeModal}
         >
           <p className="text-white text-base font-bold text-center">
-            画像を長押し →「写真に追加」で保存
+            {isLINE
+              ? "画像を長押し → 「写真を保存」\nまたは右上「…」→「他のブラウザで開く」"
+              : "画像を長押し →「写真に追加」で保存"}
           </p>
           <img
             src={iosModal}

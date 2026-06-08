@@ -191,9 +191,11 @@ export default function Home() {
             {/* STEP 2 */}
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-amber-500 mb-1">STEP 2：フレーム</h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-sm text-gray-700 leading-relaxed mb-3">
                 　選択したトークンの種類に応じて利用可能なフレームが表示されます。例えば、クリーチャーはP/T枠つき、プレインズウォーカーは忠誠度枠つきのフレームが表示されます。
               </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/manual/manual_step2.png" alt="STEP2フレーム選択例" className="w-full" />
             </div>
 
             {/* STEP 3 */}

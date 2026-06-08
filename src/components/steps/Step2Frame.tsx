@@ -28,29 +28,31 @@ export default function Step2Frame({ selected, cardType, onSelect }: Props) {
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-gray-600 mb-3">フレームを選んでください</p>
-      <div className="grid grid-cols-3 gap-2">
-        {availableFrames.map((frame) => (
-          <button
-            key={frame.id}
-            onClick={() => onSelect(frame.id)}
-            className={`relative rounded-xl overflow-hidden border-2 transition-colors ${
-              selected === frame.id ? "border-amber-500" : "border-gray-200"
-            }`}
-            style={{ aspectRatio: "5 / 7" }}
-          >
-            <Image
-              src={frame.file}
-              alt={frame.name}
-              fill
-              className="object-fill"
-              unoptimized
-            />
-            <div className="absolute bottom-0 inset-x-0 bg-black/40 text-white text-xs text-center py-1">
-              {frame.name}
-            </div>
-          </button>
-        ))}
+      <p className="text-sm text-gray-600 mb-2">フレームを選んでください</p>
+      <div className="overflow-y-auto max-h-[488px]">
+        <div className="grid grid-cols-3 gap-2">
+          {availableFrames.map((frame) => (
+            <button
+              key={frame.id}
+              onClick={() => onSelect(frame.id)}
+              className={`relative rounded-xl overflow-hidden border-2 transition-colors ${
+                selected === frame.id ? "border-amber-500" : "border-gray-200"
+              }`}
+              style={{ aspectRatio: "5 / 7" }}
+            >
+              <Image
+                src={frame.file}
+                alt={frame.name}
+                fill
+                className="object-fill"
+                unoptimized
+              />
+              <div className="absolute bottom-0 inset-x-0 bg-black/40 text-white text-xs text-center py-1">
+                {frame.name}
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

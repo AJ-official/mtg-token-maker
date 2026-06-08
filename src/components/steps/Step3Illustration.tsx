@@ -17,26 +17,28 @@ export default function Step3Illustration({ selected, cardType, onSelect }: Prop
 
   return (
     <div className="space-y-2">
-      <p className="text-sm text-gray-600 mb-3">イラストを選んでください</p>
-      <div className="grid grid-cols-3 gap-2">
-        {filtered.map((illust) => (
-          <button
-            key={illust.id}
-            onClick={() => onSelect(illust.id)}
-            className={`relative rounded-xl overflow-hidden border-2 transition-colors ${
-              selected === illust.id ? "border-amber-500" : "border-gray-200"
-            }`}
-            style={{ aspectRatio: "1 / 1" }}
-          >
-            <Image
-              src={illust.file}
-              alt={illust.name}
-              fill
-              className="object-contain"
-              unoptimized
-            />
-          </button>
-        ))}
+      <p className="text-sm text-gray-600 mb-2">イラストを選んでください</p>
+      <div className="overflow-y-auto max-h-[496px]">
+        <div className="grid grid-cols-3 gap-2">
+          {filtered.map((illust) => (
+            <button
+              key={illust.id}
+              onClick={() => onSelect(illust.id)}
+              className={`relative rounded-xl overflow-hidden border-2 transition-colors ${
+                selected === illust.id ? "border-amber-500" : "border-gray-200"
+              }`}
+              style={{ aspectRatio: "5 / 7" }}
+            >
+              <Image
+                src={illust.file}
+                alt={illust.name}
+                fill
+                className="object-cover"
+                unoptimized
+              />
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import { formatTimestamp } from "@/lib/utils";
 import { CardState, ManaType, MANA_SLOTS } from "@/types/card";
 import { getFrameById } from "@/config/frames";
@@ -31,9 +31,6 @@ const isIOS = typeof navigator !== "undefined" && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 );
-
-// LINEの内蔵ブラウザは <a download> によるダウンロードが動作しないためモーダル表示に切り替える
-const isLINE = typeof navigator !== "undefined" && /Line\//i.test(navigator.userAgent);
 
 // iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
 // この値で補正する（負の値=iOSのADJを減らして上にずらす）
@@ -245,30 +242,6 @@ function download(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
-// data: URL → Blob 変換
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [header, b64] = dataUrl.split(",");
-  const mime = header.match(/:(.*?);/)![1];
-  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  return new Blob([bytes], { type: mime });
-}
-
-// Web Share API でファイル共有（Android LINE 向け）
-// canShare は LINE の WebView に存在しない場合があるため、存在する場合のみ使用する
-async function tryWebShare(dataUrl: string, filename: string): Promise<boolean> {
-  if (typeof navigator === "undefined" || !navigator.share) return false;
-  try {
-    const file = new File([dataUrlToBlob(dataUrl)], filename, { type: "image/png" });
-    if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) return false;
-    await navigator.share({ files: [file] });
-    return true;
-  } catch (e) {
-    // AbortError = ユーザーがキャンセル → 正常終了扱い
-    if (e instanceof Error && e.name === "AbortError") return true;
-    return false;
-  }
-}
-
 export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
@@ -276,27 +249,15 @@ export default function Step5Save({ card }: Props) {
   // iOS Safari は非同期後の link.click() をブロックするためモーダルで画像表示
   const [iosModal, setIosModal] = useState<string | null>(null);
 
-  const closeModal = useCallback(() => {
-    setIosModal((prev) => {
-      if (prev) URL.revokeObjectURL(prev);
-      return null;
-    });
-  }, []);
-
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
     try {
       const dataUrl = await renderCardToCanvas(card);
-      const filename = `token_${formatTimestamp()}.png`;
-      if (isLINE) {
-        // Android LINE: Web Share API → 失敗時はモーダル
-        const shared = await tryWebShare(dataUrl, filename);
-        if (!shared) setIosModal(URL.createObjectURL(dataUrlToBlob(dataUrl)));
-      } else if (isIOS) {
-        setIosModal(URL.createObjectURL(dataUrlToBlob(dataUrl)));
+      if (isIOS) {
+        setIosModal(dataUrl);
       } else {
-        download(dataUrl, filename);
+        download(dataUrl, `token_${formatTimestamp()}.png`);
         setMessage("保存しました！");
       }
     } catch (err) {
@@ -324,14 +285,10 @@ export default function Step5Save({ card }: Props) {
       ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
       const doubleUrl = canvas.toDataURL("image/png");
-      const filename = `token_double_${formatTimestamp()}.png`;
-      if (isLINE) {
-        const shared = await tryWebShare(doubleUrl, filename);
-        if (!shared) setIosModal(URL.createObjectURL(dataUrlToBlob(doubleUrl)));
-      } else if (isIOS) {
-        setIosModal(URL.createObjectURL(dataUrlToBlob(doubleUrl)));
+      if (isIOS) {
+        setIosModal(doubleUrl);
       } else {
-        download(doubleUrl, filename);
+        download(doubleUrl, `token_double_${formatTimestamp()}.png`);
         setMessage("コンビニプリント（L判写真）で印刷してください。");
       }
     } catch (err) {
@@ -344,25 +301,23 @@ export default function Step5Save({ card }: Props) {
 
   return (
     <>
-      {/* iOS / LINE フォールバック用モーダル */}
+      {/* iOS用モーダル：長押しして保存してもらう */}
       {iosModal && (
         <div
           className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-5 p-5"
-          onClick={closeModal}
+          onClick={() => setIosModal(null)}
         >
           <p className="text-white text-base font-bold text-center">
-            {isLINE
-              ? "画像を長押し → 「写真を保存」\nまたは右上「…」→「他のブラウザで開く」"
-              : "画像を長押し →「写真に追加」で保存"}
+            画像を長押し →「写真に追加」で保存
           </p>
           <img
             src={iosModal}
             alt="保存用画像"
-            className="max-w-full max-h-[72vh] object-contain"
+            className="max-w-full max-h-[72vh] object-contain rounded-xl"
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            onClick={closeModal}
+            onClick={() => setIosModal(null)}
             className="px-8 py-3 bg-white rounded-full text-black font-bold text-sm"
           >
             閉じる

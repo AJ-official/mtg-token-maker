@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { formatTimestamp } from "@/lib/utils";
 import { CardState, ManaType, MANA_SLOTS } from "@/types/card";
 import { getFrameById } from "@/config/frames";
@@ -248,12 +248,27 @@ function download(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
-// data: URL → blob: URL に変換（Android長押し保存のため）
-function toBlobUrl(dataUrl: string): string {
+// data: URL → Blob 変換
+function dataUrlToBlob(dataUrl: string): Blob {
   const [header, b64] = dataUrl.split(",");
   const mime = header.match(/:(.*?);/)![1];
   const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  return URL.createObjectURL(new Blob([bytes], { type: mime }));
+  return new Blob([bytes], { type: mime });
+}
+
+// Web Share API でファイル共有（Android向け）
+async function tryWebShare(dataUrl: string, filename: string): Promise<boolean> {
+  if (typeof navigator === "undefined" || !navigator.share || !navigator.canShare) return false;
+  try {
+    const file = new File([dataUrlToBlob(dataUrl)], filename, { type: "image/png" });
+    if (!navigator.canShare({ files: [file] })) return false;
+    await navigator.share({ files: [file] });
+    return true;
+  } catch (e) {
+    // AbortError = ユーザーがキャンセル → 正常終了扱い
+    if (e instanceof Error && e.name === "AbortError") return true;
+    return false;
+  }
 }
 
 export default function Step5Save({ card }: Props) {
@@ -263,15 +278,36 @@ export default function Step5Save({ card }: Props) {
   // iOS Safari は非同期後の link.click() をブロックするためモーダルで画像表示
   const [iosModal, setIosModal] = useState<string | null>(null);
 
+  const closeModal = useCallback(() => {
+    setIosModal((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
+  // Androidの「戻る」ボタンでモーダルを閉じる
+  useEffect(() => {
+    if (!iosModal) return;
+    window.history.pushState({ modal: true }, "");
+    const onPop = () => closeModal();
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [iosModal, closeModal]);
+
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
     try {
       const dataUrl = await renderCardToCanvas(card);
-      if (useModal) {
-        setIosModal(toBlobUrl(dataUrl));
+      const filename = `token_${formatTimestamp()}.png`;
+      if (isLINE) {
+        // Android LINE: Web Share API → 失敗時はモーダル
+        const shared = await tryWebShare(dataUrl, filename);
+        if (!shared) setIosModal(URL.createObjectURL(dataUrlToBlob(dataUrl)));
+      } else if (isIOS) {
+        setIosModal(URL.createObjectURL(dataUrlToBlob(dataUrl)));
       } else {
-        download(dataUrl, `token_${formatTimestamp()}.png`);
+        download(dataUrl, filename);
         setMessage("保存しました！");
       }
     } catch (err) {
@@ -299,10 +335,14 @@ export default function Step5Save({ card }: Props) {
       ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
       const doubleUrl = canvas.toDataURL("image/png");
-      if (useModal) {
-        setIosModal(toBlobUrl(doubleUrl));
+      const filename = `token_double_${formatTimestamp()}.png`;
+      if (isLINE) {
+        const shared = await tryWebShare(doubleUrl, filename);
+        if (!shared) setIosModal(URL.createObjectURL(dataUrlToBlob(doubleUrl)));
+      } else if (isIOS) {
+        setIosModal(URL.createObjectURL(dataUrlToBlob(doubleUrl)));
       } else {
-        download(doubleUrl, `token_double_${formatTimestamp()}.png`);
+        download(doubleUrl, filename);
         setMessage("コンビニプリント（L判写真）で印刷してください。");
       }
     } catch (err) {
@@ -315,14 +355,14 @@ export default function Step5Save({ card }: Props) {
 
   return (
     <>
-      {/* iOS用モーダル：長押しして保存してもらう */}
+      {/* iOS / LINE フォールバック用モーダル */}
       {iosModal && (
         <div
           className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-5 p-5"
-          onClick={() => { URL.revokeObjectURL(iosModal!); setIosModal(null); }}
+          onClick={closeModal}
         >
           <p className="text-white text-base font-bold text-center">
-            画像を長押し → 「写真に追加」または「画像を保存」で保存
+            画像を長押し →「写真に追加」で保存
           </p>
           <img
             src={iosModal}
@@ -331,7 +371,7 @@ export default function Step5Save({ card }: Props) {
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            onClick={() => { URL.revokeObjectURL(iosModal!); setIosModal(null); }}
+            onClick={closeModal}
             className="px-8 py-3 bg-white rounded-full text-black font-bold text-sm"
           >
             閉じる

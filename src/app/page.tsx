@@ -203,7 +203,7 @@ export default function Home() {
                 　カードに表示するイラストを選択します。用意されたイラストの中からお好みのものを選んでください。選択したイラストはカードプレビューに即座に反映されます。
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/manual/manual_step3.png" alt="STEP3イラスト選択例" className="w-full rounded-xl" />
+              <img src="/manual/manual_step3.png" alt="STEP3イラスト選択例" className="w-full" />
             </div>
 
             {/* STEP 4 */}

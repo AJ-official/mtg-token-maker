@@ -32,6 +32,12 @@ const isIOS = typeof navigator !== "undefined" && (
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 );
 
+// LINEの内蔵ブラウザは <a download> によるダウンロードが動作しないためモーダル表示に切り替える
+const isLINE = typeof navigator !== "undefined" && /Line\//i.test(navigator.userAgent);
+
+// モーダル表示が必要な環境
+const useModal = isIOS || isLINE;
+
 // iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
 // この値で補正する（負の値=iOSのADJを減らして上にずらす）
 const IOS_FONT_OFFSET = -15;
@@ -254,7 +260,7 @@ export default function Step5Save({ card }: Props) {
     setMessage(null);
     try {
       const dataUrl = await renderCardToCanvas(card);
-      if (isIOS) {
+      if (useModal) {
         setIosModal(dataUrl);
       } else {
         download(dataUrl, `token_${formatTimestamp()}.png`);
@@ -285,7 +291,7 @@ export default function Step5Save({ card }: Props) {
       ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
       const doubleUrl = canvas.toDataURL("image/png");
-      if (isIOS) {
+      if (useModal) {
         setIosModal(doubleUrl);
       } else {
         download(doubleUrl, `token_double_${formatTimestamp()}.png`);
@@ -308,7 +314,7 @@ export default function Step5Save({ card }: Props) {
           onClick={() => setIosModal(null)}
         >
           <p className="text-white text-base font-bold text-center">
-            画像を長押し →「写真に追加」で保存
+            画像を長押し → 「写真に追加」または「画像を保存」で保存
           </p>
           <img
             src={iosModal}

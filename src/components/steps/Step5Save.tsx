@@ -248,6 +248,14 @@ function download(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
+// data: URL → blob: URL に変換（Android長押し保存のため）
+function toBlobUrl(dataUrl: string): string {
+  const [header, b64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)![1];
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return URL.createObjectURL(new Blob([bytes], { type: mime }));
+}
+
 export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
@@ -261,7 +269,7 @@ export default function Step5Save({ card }: Props) {
     try {
       const dataUrl = await renderCardToCanvas(card);
       if (useModal) {
-        setIosModal(dataUrl);
+        setIosModal(toBlobUrl(dataUrl));
       } else {
         download(dataUrl, `token_${formatTimestamp()}.png`);
         setMessage("保存しました！");
@@ -292,7 +300,7 @@ export default function Step5Save({ card }: Props) {
 
       const doubleUrl = canvas.toDataURL("image/png");
       if (useModal) {
-        setIosModal(doubleUrl);
+        setIosModal(toBlobUrl(doubleUrl));
       } else {
         download(doubleUrl, `token_double_${formatTimestamp()}.png`);
         setMessage("コンビニプリント（L判写真）で印刷してください。");
@@ -311,7 +319,7 @@ export default function Step5Save({ card }: Props) {
       {iosModal && (
         <div
           className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-5 p-5"
-          onClick={() => setIosModal(null)}
+          onClick={() => { URL.revokeObjectURL(iosModal!); setIosModal(null); }}
         >
           <p className="text-white text-base font-bold text-center">
             画像を長押し → 「写真に追加」または「画像を保存」で保存
@@ -319,11 +327,11 @@ export default function Step5Save({ card }: Props) {
           <img
             src={iosModal}
             alt="保存用画像"
-            className="max-w-full max-h-[72vh] object-contain rounded-xl"
+            className="max-w-full max-h-[72vh] object-contain"
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            onClick={() => setIosModal(null)}
+            onClick={() => { URL.revokeObjectURL(iosModal!); setIosModal(null); }}
             className="px-8 py-3 bg-white rounded-full text-black font-bold text-sm"
           >
             閉じる

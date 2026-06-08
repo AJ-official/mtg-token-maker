@@ -199,9 +199,11 @@ export default function Home() {
             {/* STEP 3 */}
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
               <h3 className="text-sm font-bold text-amber-500 mb-1">STEP 3：イラスト</h3>
-              <p className="text-sm text-gray-700 leading-relaxed">
+              <p className="text-sm text-gray-700 leading-relaxed mb-3">
                 　カードに表示するイラストを選択します。用意されたイラストの中からお好みのものを選んでください。選択したイラストはカードプレビューに即座に反映されます。
               </p>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/manual/manual_step3.png" alt="STEP3イラスト選択例" className="w-full rounded-xl" />
             </div>
 
             {/* STEP 4 */}

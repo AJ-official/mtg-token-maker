@@ -127,13 +127,13 @@ export default function Home() {
   if (showOpening) {
     return (
       <main
-        className="flex justify-center items-center bg-gray-100 min-h-screen cursor-pointer"
+        className="flex justify-center items-start pt-[8vh] md:items-center md:pt-0 bg-gray-100 min-h-screen cursor-pointer"
         onClick={() => setShowOpening(false)}
       >
         <img
           src="/opening.png"
           alt="エージェイのトークン屋さん"
-          className="h-screen object-contain"
+          className="w-full md:h-screen md:w-auto md:object-contain"
         />
       </main>
     );

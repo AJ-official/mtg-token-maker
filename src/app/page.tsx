@@ -15,8 +15,14 @@ const TOTAL_STEPS = 5;
 type Tab = "token" | "manual" | "credit";
 
 export default function Home() {
+  const [showOpening, setShowOpening] = useState(true);
   const [step, setStep] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>("token");
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => setShowOpening(false), 2000);
+    return () => clearTimeout(timer);
+  }, []);
   const previewRef = useRef<HTMLDivElement>(null);
   const {
     card,
@@ -118,6 +124,21 @@ export default function Home() {
     { id: "credit", label: "クレジット" },
   ];
 
+  if (showOpening) {
+    return (
+      <main
+        className="flex justify-center items-center bg-gray-100 min-h-screen cursor-pointer"
+        onClick={() => setShowOpening(false)}
+      >
+        <img
+          src="/opening.png"
+          alt="エージェイのトークン屋さん"
+          className="h-screen object-contain"
+        />
+      </main>
+    );
+  }
+
   return (
     <main className="flex justify-center bg-gray-100 min-h-screen">
       <div className="w-full max-w-[390px] flex flex-col min-h-screen">
@@ -163,11 +184,9 @@ export default function Home() {
           <div className="flex-1 overflow-y-auto pb-6">
             {/* イントロ */}
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
+              <img src="/logo.png" alt="エージェイのトークン屋さん" className="w-full mb-4" />
               <p className="text-sm text-gray-700 leading-relaxed">
-                　『エージェイのトークン屋さん』は、マジック：ザ・ギャザリングのオリジナルトークンカードを簡単に制作できる無料のウェブアプリなのだ。
-              </p>
-              <p className="text-sm text-gray-700 leading-relaxed mt-2">
-                　5つのステップでトークンカードの画像を簡単に作成できるのだ。みんな、バリバリ作るのだ！
+                　5つのステップでオリジナルトークンカードを制作できるウェブアプリです。画像をスマホに表示させて簡易的にトークンとして使用したり、印刷してゲームに使用することができます。プリンターなどをお持ちでない方のためにコンビニのマルチコピー機用のデータで保存することもできます。
               </p>
             </div>
 

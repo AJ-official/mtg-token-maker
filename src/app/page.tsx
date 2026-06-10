@@ -284,6 +284,9 @@ export default function Home() {
         {activeTab === "credit" && (
           <div className="flex-1 overflow-y-auto pb-6">
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
+              {/* ロゴ */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="エージェイのトークン屋さん" className="w-full mb-4" />
               {/* アイコン（中央揃え・大） */}
               <div className="flex justify-center mb-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

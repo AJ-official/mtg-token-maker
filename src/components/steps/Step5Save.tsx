@@ -85,6 +85,7 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
   const frame = getFrameById(card.frameId);
   const illustration = getIllustrationById(card.illustrationId);
   const isDungeon = card.cardType === "dungeon";
+  const isCounter = card.cardType === "counter";
   const isCreature = card.cardType === "creature";
   const isPlaneswalker = card.cardType === "planeswalker";
 
@@ -93,8 +94,8 @@ async function renderCardToCanvas(card: CardState): Promise<string> {
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  // ダンジョン：イラストのみ全面表示
-  if (isDungeon) {
+  // ダンジョン・カウンター：イラストのみ全面表示
+  if (isDungeon || isCounter) {
     if (illustration) {
       const img = await loadImg(illustration.file);
       ctx.drawImage(img, 0, 0, W, H);
@@ -335,7 +336,7 @@ export default function Step5Save({ card }: Props) {
           disabled={saving || savingDouble}
           className="w-full py-4 rounded-2xl bg-amber-500 text-white font-bold text-lg active:bg-amber-600 disabled:opacity-50"
         >
-          {saving ? "保存中..." : "トークンを画像として保存"}
+          {saving ? "保存中..." : "画像として保存"}
         </button>
 
         <button

@@ -40,13 +40,14 @@ export default function Home() {
     setShowSymbol,
   } = useCardState();
 
-  const DUNGEON_SKIP = [2, 4];
+  const SKIP_STEPS = [2, 4];
+  const SKIP_TYPES = ["dungeon", "counter"];
 
   const handleNext = () => {
     setStep((s) => {
       let next = s + 1;
-      if (card.cardType === "dungeon") {
-        while (DUNGEON_SKIP.includes(next) && next <= TOTAL_STEPS) next++;
+      if (SKIP_TYPES.includes(card.cardType)) {
+        while (SKIP_STEPS.includes(next) && next <= TOTAL_STEPS) next++;
       }
       return Math.min(TOTAL_STEPS, next);
     });
@@ -55,8 +56,8 @@ export default function Home() {
   const handlePrev = () => {
     setStep((s) => {
       let prev = s - 1;
-      if (card.cardType === "dungeon") {
-        while (DUNGEON_SKIP.includes(prev) && prev >= 1) prev--;
+      if (SKIP_TYPES.includes(card.cardType)) {
+        while (SKIP_STEPS.includes(prev) && prev >= 1) prev--;
       }
       return Math.max(1, prev);
     });
@@ -72,8 +73,8 @@ export default function Home() {
               setCardType(type);
               setStep((s) => {
                 let next = s + 1;
-                if (type === "dungeon") {
-                  while (DUNGEON_SKIP.includes(next) && next <= TOTAL_STEPS) next++;
+                if (SKIP_TYPES.includes(type)) {
+                  while (SKIP_STEPS.includes(next) && next <= TOTAL_STEPS) next++;
                 }
                 return Math.min(TOTAL_STEPS, next);
               });

@@ -5,7 +5,8 @@ export type CardType =
   | "artifact"
   | "land"
   | "emblem"
-  | "dungeon";
+  | "dungeon"
+  | "counter";
 
 export type ManaType =
   | "white" | "blue" | "black" | "red" | "green"

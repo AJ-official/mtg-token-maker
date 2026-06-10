@@ -1,6 +1,6 @@
 import { FrameConfig } from "@/types/frame";
 
-const NON_CREATURE_TYPES = ["enchantment", "artifact", "land", "emblem", "battle", "dungeon"];
+const NON_CREATURE_TYPES = ["enchantment", "artifact", "land", "emblem", "battle", "dungeon", "counter"];
 
 // 座標はフレーム画像 250×350px のピクセル分析から算出
 // タイトルバー: y=15-41 (4.3%-11.7%)

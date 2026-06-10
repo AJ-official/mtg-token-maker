@@ -16,6 +16,7 @@ const CARD_TYPES: { id: CardType; label: string; emoji: string }[] = [
   { id: "land",         label: "土地",                   emoji: "🏔️" },
   { id: "emblem",       label: "紋章",                   emoji: "🛡️" },
   { id: "dungeon",      label: "ダンジョン",              emoji: "🗝️" },
+  { id: "counter",      label: "カウンター",              emoji: "🎲" },
 ];
 
 export default function Step1CardType({ selected, onSelect }: Props) {

@@ -21,6 +21,10 @@ export const illustrations: IllustrationConfig[] = [
   { id: "dungeon_01", name: "ファンデルヴァーの失われた鉱山", file: "/illustrations/dungeon_01.png", category: "dungeon" },
   { id: "dungeon_02", name: "魂を喰らう墓",                   file: "/illustrations/dungeon_02.png", category: "dungeon" },
   { id: "dungeon_03", name: "狂える魔道士の迷宮",             file: "/illustrations/dungeon_03.png", category: "dungeon" },
+  { id: "counter_01_color", name: "カウンター01カラー",   file: "/illustrations/counter_01_color.png", category: "counter" },
+  { id: "counter_02_color", name: "カウンター02カラー",   file: "/illustrations/counter_02_color.png", category: "counter" },
+  { id: "counter_01_mono",  name: "カウンター01モノクロ", file: "/illustrations/counter_01_mono.png",  category: "counter" },
+  { id: "counter_02_mono",  name: "カウンター02モノクロ", file: "/illustrations/counter_02_mono.png",  category: "counter" },
 ];
 
 export const getIllustrationById = (id: string): IllustrationConfig | undefined =>

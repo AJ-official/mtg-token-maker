@@ -12,7 +12,9 @@ type Props = {
 
 export default function Step3Illustration({ selected, cardType, onSelect }: Props) {
   const filtered = illustrations.filter((i) =>
-    cardType === "dungeon" ? i.category === "dungeon" : i.category !== "dungeon"
+    cardType === "dungeon" || cardType === "counter"
+      ? i.category === cardType
+      : i.category !== "dungeon" && i.category !== "counter"
   );
 
   return (

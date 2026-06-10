@@ -24,9 +24,10 @@ export default function CardPreview({ card, previewRef }: Props) {
   const isCreature = card.cardType === "creature";
   const isPlaneswalker = card.cardType === "planeswalker";
   const isDungeon = card.cardType === "dungeon";
+  const isCounter = card.cardType === "counter";
 
-  // ダンジョンはイラスト全体をカードとして表示
-  if (isDungeon) {
+  // ダンジョン・カウンターはイラスト全体をカードとして表示
+  if (isDungeon || isCounter) {
     return (
       <div
         ref={previewRef}

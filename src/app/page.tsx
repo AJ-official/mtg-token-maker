@@ -205,6 +205,7 @@ export default function Home() {
                 <li>🏔️ 土地</li>
                 <li>🛡️ 紋章</li>
                 <li>🗝️ ダンジョン<span className="text-gray-400 text-xs ml-1">（STEP 2・4 が省略されます）</span></li>
+                <li>🎲 カウンター<span className="text-gray-400 text-xs ml-1">（STEP 2・4 が省略されます）</span></li>
               </ul>
             </div>
 

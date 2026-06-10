@@ -187,7 +187,7 @@ export default function Home() {
             <div className="bg-white mx-3 mt-3 rounded-2xl p-5 shadow-sm">
               <img src="/logo.png" alt="エージェイのトークン屋さん" className="w-full mb-4" />
               <p className="text-sm text-gray-700 leading-relaxed">
-                　5つのステップでオリジナルトークンカードを制作できるウェブアプリです。画像をスマホに表示させて簡易的にトークンとして使用したり、印刷してゲームに使用することができます。プリンターなどをお持ちでない方のためにコンビニのマルチコピー機用のデータで保存することもできます。
+                　5つのステップでオリジナルトークンカードを制作できるウェブアプリです。画像をスマホに表示させて簡易的にトークンとして使用したり、印刷してゲームに使用することができます。
               </p>
             </div>
 

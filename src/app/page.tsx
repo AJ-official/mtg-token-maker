@@ -134,7 +134,7 @@ export default function Home() {
         <img
           src="/opening.png"
           alt="エージェイのトークン屋さん"
-          className="w-[90%] md:h-[90vh] md:w-auto md:object-contain"
+          className="w-[80%] md:h-[80vh] md:w-auto md:object-contain"
         />
       </main>
     );

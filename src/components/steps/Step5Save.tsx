@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { formatTimestamp } from "@/lib/utils";
 import { CardState, ManaType, MANA_SLOTS } from "@/types/card";
 import { getFrameById } from "@/config/frames";
@@ -31,6 +31,10 @@ const isIOS = typeof navigator !== "undefined" && (
   /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
 );
+
+// LINEの内蔵ブラウザ（WebView）検出。Androidでは <a download> が無効化されるため分岐が必要。
+const isLINE = typeof navigator !== "undefined" && /Line\//i.test(navigator.userAgent);
+const isAndroid = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
 
 // iOSはChromeと異なるフォントレンダリングのため、テキスト要素が下にずれる。
 // この値で補正する（負の値=iOSのADJを減らして上にずらす）
@@ -243,27 +247,113 @@ function download(dataUrl: string, filename: string) {
   document.body.removeChild(link);
 }
 
+// data: URL → Blob 変換
+function dataUrlToBlob(dataUrl: string): Blob {
+  const [header, b64] = dataUrl.split(",");
+  const mime = header.match(/:(.*?);/)![1];
+  const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  return new Blob([bytes], { type: mime });
+}
+
+type ShareResult = { shared: boolean; diag: string };
+
+// Web Share API でファイル共有（Android LINE 向け）。
+// ★重要: この関数は最初の await が navigator.share() になるよう同期的に組む。
+//   呼び出し側で dataUrl を事前生成しておくことで、タップ由来の transient user activation を
+//   消費せずに share() へ到達できる（activation が切れると NotAllowed で沈黙失敗するため）。
+// 何が起きたかを診断文字列で返し、実機テスト時に画面へ表示できるようにする。
+async function tryWebShare(dataUrl: string, filename: string): Promise<ShareResult> {
+  const diag: string[] = [`share:${typeof navigator !== "undefined" ? typeof navigator.share : "no-nav"}`];
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    return { shared: false, diag: diag.join(" ") };
+  }
+  try {
+    const file = new File([dataUrlToBlob(dataUrl)], filename, { type: "image/png" });
+    // canShare は「関数として存在する場合のみ」判定に使う（LINE WebViewでは未定義のことがある）。
+    if (typeof navigator.canShare === "function") {
+      const ok = navigator.canShare({ files: [file] });
+      diag.push(`canShare(files):${ok}`);
+      if (!ok) return { shared: false, diag: diag.join(" ") };
+    } else {
+      diag.push("canShare:undefined");
+    }
+    await navigator.share({ files: [file] });
+    diag.push("share:ok");
+    return { shared: true, diag: diag.join(" ") };
+  } catch (e) {
+    // AbortError = ユーザーが共有シートをキャンセル → 成功扱い（フォールバック不要）
+    if (e instanceof Error && e.name === "AbortError") {
+      return { shared: true, diag: [...diag, "share:aborted"].join(" ") };
+    }
+    const name = e instanceof Error ? e.name : "unknown";
+    const msg = e instanceof Error ? e.message : String(e);
+    return { shared: false, diag: [...diag, `err:${name}:${msg}`].join(" ") };
+  }
+}
+
 export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // iOS Safari は非同期後の link.click() をブロックするためモーダルで画像表示
   const [iosModal, setIosModal] = useState<string | null>(null);
+  // 実機（特にAndroid LINE）で何が起きたかを画面に出すための診断文字列
+  const [diag, setDiag] = useState<string | null>(null);
+
+  // Android LINE 用に、タップ前に画像を事前レンダリングしておく。
+  // こうすることで保存タップ直後に（await を挟まず）navigator.share() を呼べ、
+  // transient user activation を維持できる。ref に置くのは同期的に読み出すため。
+  const preRenderedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!(isLINE && isAndroid)) return;
+    let cancelled = false;
+    renderCardToCanvas(card)
+      .then((url) => { if (!cancelled) preRenderedRef.current = url; })
+      .catch(() => { /* 事前レンダリング失敗時はタップ時に再生成する */ });
+    return () => { cancelled = true; };
+  }, [card]);
+
+  // モーダルを閉じる。blob URL を確実に revoke する。
+  // ※ history.pushState/popstate は LINE WebView + Next.js router でフリーズするため使わない。
+  const closeModal = useCallback(() => {
+    setIosModal((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
+  // 保存できなかった時のフォールバック（画像を長押し保存＋外部ブラウザ案内）モーダルを開く
+  const openFallbackModal = (dataUrl: string) => {
+    setIosModal(URL.createObjectURL(dataUrlToBlob(dataUrl)));
+  };
 
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
+    setDiag(null);
+    const filename = `token_${formatTimestamp()}.png`;
     try {
-      const dataUrl = await renderCardToCanvas(card);
-      if (isIOS) {
+      if (isLINE && isAndroid) {
+        // 事前レンダリング済みならタップ直後に share() を呼べる（activation維持）
+        const dataUrl = preRenderedRef.current ?? await renderCardToCanvas(card);
+        const result = await tryWebShare(dataUrl, filename);
+        if (!result.shared) {
+          openFallbackModal(dataUrl);
+          setDiag(result.diag);
+        }
+      } else if (isIOS) {
+        // iOS は data: URL の長押し保存が確実（現行の動作を維持）
+        const dataUrl = await renderCardToCanvas(card);
         setIosModal(dataUrl);
       } else {
-        download(dataUrl, `token_${formatTimestamp()}.png`);
+        const dataUrl = await renderCardToCanvas(card);
+        download(dataUrl, filename);
         setMessage("保存しました！");
       }
     } catch (err) {
       console.error(err);
       setMessage("保存に失敗しました。もう一度お試しください。");
+      setDiag(err instanceof Error ? `render/save err:${err.name}:${err.message}` : String(err));
     } finally {
       setSaving(false);
     }
@@ -272,6 +362,7 @@ export default function Step5Save({ card }: Props) {
   const handleSaveDouble = async () => {
     setSavingDouble(true);
     setMessage(null);
+    setDiag(null);
     try {
       const dataUrl = await renderCardToCanvas(card);
       const img = await loadImage(dataUrl);
@@ -286,15 +377,23 @@ export default function Step5Save({ card }: Props) {
       ctx.drawImage(img, DOUBLE_MARGIN_LR + W, DOUBLE_MARGIN_TOP, W, H);
 
       const doubleUrl = canvas.toDataURL("image/png");
-      if (isIOS) {
+      const filename = `token_double_${formatTimestamp()}.png`;
+      if (isLINE && isAndroid) {
+        const result = await tryWebShare(doubleUrl, filename);
+        if (!result.shared) {
+          openFallbackModal(doubleUrl);
+          setDiag(result.diag);
+        }
+      } else if (isIOS) {
         setIosModal(doubleUrl);
       } else {
-        download(doubleUrl, `token_double_${formatTimestamp()}.png`);
+        download(doubleUrl, filename);
         setMessage("コンビニプリント（L判写真）で印刷してください。");
       }
     } catch (err) {
       console.error(err);
       setMessage("保存に失敗しました。もう一度お試しください。");
+      setDiag(err instanceof Error ? `render/save err:${err.name}:${err.message}` : String(err));
     } finally {
       setSavingDouble(false);
     }
@@ -302,27 +401,47 @@ export default function Step5Save({ card }: Props) {
 
   return (
     <>
-      {/* iOS用モーダル：長押しして保存してもらう */}
+      {/* iOS / Android LINE フォールバック用モーダル：長押し保存 or 外部ブラウザ案内 */}
       {iosModal && (
         <div
-          className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-5 p-5"
-          onClick={() => setIosModal(null)}
+          className="fixed inset-0 bg-black/85 z-50 flex flex-col items-center justify-center gap-4 p-5 overflow-y-auto"
+          onClick={closeModal}
         >
-          <p className="text-white text-base font-bold text-center">
-            画像を長押し →「写真に追加」で保存
-          </p>
+          {isLINE && isAndroid ? (
+            <div
+              className="text-white text-center space-y-1 max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="text-base font-bold">画像を長押し →「画像を保存」</p>
+              <p className="text-sm text-amber-300">
+                保存できない場合 → 右上「…」→「他のブラウザで開く」→ もう一度保存ボタン
+              </p>
+            </div>
+          ) : (
+            <p className="text-white text-base font-bold text-center">
+              画像を長押し →「写真に追加」で保存
+            </p>
+          )}
           <img
             src={iosModal}
             alt="保存用画像"
-            className="max-w-full max-h-[72vh] object-contain rounded-xl"
+            className="max-w-full max-h-[68vh] object-contain rounded-xl"
             onClick={(e) => e.stopPropagation()}
           />
           <button
-            onClick={() => setIosModal(null)}
+            onClick={closeModal}
             className="px-8 py-3 bg-white rounded-full text-black font-bold text-sm"
           >
             閉じる
           </button>
+          {diag && (
+            <p
+              className="text-[10px] leading-tight text-gray-400 text-center break-all max-w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {diag}
+            </p>
+          )}
         </div>
       )}
 
@@ -350,6 +469,14 @@ export default function Step5Save({ card }: Props) {
         {message && (
           <p className={`text-sm font-medium ${message.includes("失敗") ? "text-red-500" : "text-green-600"}`}>
             {message}
+          </p>
+        )}
+
+        {/* 診断情報（実機テスト用・通常ユーザーには目立たない小さい灰色文字）。
+            モーダル表示時はモーダル内に出すのでここでは重複表示しない。 */}
+        {diag && !iosModal && (
+          <p className="text-[10px] leading-tight text-gray-400 text-center break-all max-w-full">
+            {diag}
           </p>
         )}
       </div>

@@ -173,7 +173,7 @@ export default function Home() {
             onClick={() => setLineNoticeDismissed(true)}
             className="text-xs text-gray-400 underline"
           >
-            このまま見る（画像は保存できません）
+            このまま作る（保存時に通常のブラウザが開きます）
           </button>
         </div>
       </main>

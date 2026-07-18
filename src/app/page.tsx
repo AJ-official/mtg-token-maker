@@ -19,23 +19,6 @@ export default function Home() {
   const [step, setStep] = useState(1);
   const [activeTab, setActiveTab] = useState<Tab>("token");
 
-  // LINEアプリ内ブラウザ（Android）は画像保存に非対応のため、作り始める前に外部ブラウザへ誘導する。
-  // 検出はハイドレーション不整合を避けるため useEffect（クライアント）で行う。
-  const [isLineAndroid, setIsLineAndroid] = useState(false);
-  const [lineNoticeDismissed, setLineNoticeDismissed] = useState(false);
-
-  React.useEffect(() => {
-    const ua = navigator.userAgent;
-    if (/Line\//i.test(ua) && /Android/i.test(ua)) setIsLineAndroid(true);
-  }, []);
-
-  // 通常ブラウザ（Chrome等）を開く試み。intent:// はAndroidの「アプリで開く」を誘発する。
-  // LINEが握りつぶす場合もあるため、下部の手動手順を確実なフォールバックとして併記する。
-  const openInExternalBrowser = () => {
-    const bare = window.location.href.replace(/^https?:\/\//, "");
-    window.location.href = `intent://${bare}#Intent;scheme=https;end`;
-  };
-
   React.useEffect(() => {
     const timer = setTimeout(() => setShowOpening(false), 2000);
     return () => clearTimeout(timer);
@@ -141,44 +124,6 @@ export default function Home() {
     { id: "manual", label: "マニュアル" },
     { id: "credit", label: "クレジット" },
   ];
-
-  // Android LINEブラウザ検出時：作り始める前に外部ブラウザ利用を案内する。
-  // （LINE内で作ってから外部ブラウザに移ると状態が消えてSTEP1に戻ってしまうため、最初に誘導する）
-  if (isLineAndroid && !lineNoticeDismissed) {
-    return (
-      <main className="flex justify-center items-center bg-gray-100 min-h-screen p-6">
-        <div className="w-full max-w-[360px] bg-white rounded-2xl shadow-lg p-6 flex flex-col gap-4 text-center">
-          <p className="text-lg font-bold text-gray-900">
-            ⚠️ LINEのブラウザでは<br />画像を保存できません
-          </p>
-          <p className="text-sm text-gray-600 leading-relaxed">
-            LINEアプリ内のブラウザは画像保存に対応していません。<br />
-            お手数ですが、Chromeなどの通常のブラウザで開いてからご利用ください。
-          </p>
-
-          <button
-            onClick={openInExternalBrowser}
-            className="w-full py-4 rounded-2xl bg-amber-500 text-white font-bold text-base active:bg-amber-600"
-          >
-            通常のブラウザで開く
-          </button>
-
-          <div className="text-left bg-gray-50 rounded-xl p-4 text-sm text-gray-700 leading-relaxed">
-            <p className="font-bold mb-1">うまく開けない場合</p>
-            <p>① 画面右上の「⋮」または「…」をタップ</p>
-            <p>②「他のブラウザで開く」を選ぶ</p>
-          </div>
-
-          <button
-            onClick={() => setLineNoticeDismissed(true)}
-            className="text-xs text-gray-400 underline"
-          >
-            このまま作る（保存時に通常のブラウザが開きます）
-          </button>
-        </div>
-      </main>
-    );
-  }
 
   if (showOpening) {
     return (

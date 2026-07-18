@@ -12,6 +12,7 @@ import {
   isLINE,
   isAndroid,
 } from "@/lib/renderCard";
+import { shareToX } from "@/lib/shareX";
 
 type Props = {
   card: CardState;
@@ -27,6 +28,7 @@ const isLineAndroid = isLINE && isAndroid;
 export default function Step5Save({ card }: Props) {
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // iOS Safari は非同期後の link.click() をブロックするためモーダルで画像表示
   const [iosModal, setIosModal] = useState<string | null>(null);
@@ -112,6 +114,28 @@ export default function Step5Save({ card }: Props) {
       setDiag(err instanceof Error ? `render/save err:${err.name}:${err.message}` : String(err));
     } finally {
       setSavingDouble(false);
+    }
+  };
+
+  // ── Xでシェア ──
+  const handleShareX = async () => {
+    setSharing(true);
+    setMessage(null);
+    setDiag(null);
+    try {
+      const dataUrl = await renderCardToCanvas(card);
+      const result = await shareToX(dataUrl, `token_${formatTimestamp()}.png`);
+      if (result === "intent") {
+        setMessage("Xの投稿画面を開きました。保存したトークン画像を添付して投稿してください！");
+      } else if (result === "shared") {
+        setMessage("シェアありがとうございます！🎴");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("シェアに失敗しました。もう一度お試しください。");
+      setDiag(err instanceof Error ? `share err:${err.name}:${err.message}` : String(err));
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -217,6 +241,14 @@ export default function Step5Save({ card }: Props) {
           className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold text-lg active:bg-blue-600 disabled:opacity-50"
         >
           {savingDouble ? "保存中..." : "コンビニ印刷用Ｗ保存"}
+        </button>
+
+        <button
+          onClick={handleShareX}
+          disabled={saving || savingDouble || sharing}
+          className="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg active:bg-gray-800 disabled:opacity-50"
+        >
+          {sharing ? "共有中..." : "𝕏 でシェア"}
         </button>
 
         {message && (

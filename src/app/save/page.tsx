@@ -16,6 +16,7 @@ import {
   download,
   isIOS,
 } from "@/lib/renderCard";
+import { shareToX } from "@/lib/shareX";
 
 export default function SavePage() {
   const [card, setCard] = useState<CardState | null>(null);
@@ -23,6 +24,7 @@ export default function SavePage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [savingDouble, setSavingDouble] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   // iOS は非同期後の link.click() がブロックされるため長押し保存モーダルを表示
   const [iosModal, setIosModal] = useState<string | null>(null);
@@ -102,6 +104,28 @@ export default function SavePage() {
       setDiag(err instanceof Error ? `save err:${err.name}:${err.message}` : String(err));
     } finally {
       setSavingDouble(false);
+    }
+  };
+
+  const handleShareX = async () => {
+    if (!card) return;
+    setSharing(true);
+    setMessage(null);
+    setDiag(null);
+    try {
+      const dataUrl = previewUrl ?? (await renderCardToCanvas(card));
+      const result = await shareToX(dataUrl, `token_${formatTimestamp()}.png`);
+      if (result === "intent") {
+        setMessage("Xの投稿画面を開きました。保存したトークン画像を添付して投稿してください！");
+      } else if (result === "shared") {
+        setMessage("シェアありがとうございます！🎴");
+      }
+    } catch (err) {
+      console.error(err);
+      setMessage("シェアに失敗しました。もう一度お試しください。");
+      setDiag(err instanceof Error ? `share err:${err.name}:${err.message}` : String(err));
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -190,6 +214,14 @@ export default function SavePage() {
           className="w-full py-4 rounded-2xl bg-blue-500 text-white font-bold text-lg active:bg-blue-600 disabled:opacity-50"
         >
           {savingDouble ? "保存中..." : "コンビニ印刷用Ｗ保存"}
+        </button>
+
+        <button
+          onClick={handleShareX}
+          disabled={!previewUrl || saving || savingDouble || sharing}
+          className="w-full py-4 rounded-2xl bg-black text-white font-bold text-lg active:bg-gray-800 disabled:opacity-50"
+        >
+          {sharing ? "共有中..." : "𝕏 でシェア"}
         </button>
 
         {message && (

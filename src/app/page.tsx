@@ -132,7 +132,7 @@ export default function Home() {
         onClick={() => setShowOpening(false)}
       >
         <img
-          src="/opening.png"
+          src="/opening.webp"
           alt="エージェイのトークン屋さん"
           className="w-[85%] md:h-[85vh] md:w-auto md:object-contain"
         />
